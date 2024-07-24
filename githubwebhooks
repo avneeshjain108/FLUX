@@ -1,0 +1,51 @@
+import requests
+
+# Function to fetch webhooks for a repository
+def get_repository_webhooks(owner, repo, access_token, base_url):
+    headers = {
+        'Authorization': f'token {access_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    url = f'{base_url}/repos/{owner}/{repo}/hooks'
+    response = requests.get(url, headers=headers, verify=False)  # Disable SSL verification for Enterprise Server
+    
+    if response.status_code == 200:
+        webhooks = response.json()
+        return webhooks
+    else:
+        print(f"Failed to fetch webhooks for repository {owner}/{repo}. Status code: {response.status_code}")
+        return None
+
+# Function to list webhooks for all repositories in an organization
+def list_organization_webhooks(org_name, access_token, base_url):
+    headers = {
+        'Authorization': f'token {access_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    url = f'{base_url}/orgs/{org_name}/repos'
+    response = requests.get(url, headers=headers, verify=False)  # Disable SSL verification for Enterprise Server
+    
+    if response.status_code == 200:
+        repositories = response.json()
+        for repo in repositories:
+            repo_name = repo['name']
+            print(f"Repository: {org_name}/{repo_name}")
+            webhooks = get_repository_webhooks(org_name, repo_name, access_token, base_url)
+            if webhooks:
+                for webhook in webhooks:
+                    print(f" - URL: {webhook['url']}")
+                    print(f"   Events: {', '.join(webhook['events'])}")
+                    print(f"   Active: {webhook['active']}")
+            print()  # Print an empty line for separation
+    else:
+        print(f"Failed to fetch repositories for organization {org_name}. Status code: {response.status_code}")
+
+# Example usage
+if __name__ == "__main__":
+    base_url = 'https://your-github-enterprise-url/api/v3'  # Replace with your GitHub Enterprise Server URL
+    access_token = 'your_personal_access_token'
+    organizations = ['org1', 'org2']  # Add the names of your organizations
+    
+    for org_name in organizations:
+        print(f"Checking organization: {org_name}")
+        list_organization_webhooks(org_name, access_token, base_url)
